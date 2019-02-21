@@ -118,6 +118,10 @@ class Excel
                         if (!isset($fieldarr[$k])) {
                             break;
                         }
+                        //如果第一列数据为空,也视为结束
+                        if ($k == 'A' && empty($str)) {
+                            break;
+                        }
                         $tem[$fieldarr[$k]] = $str;
                     }
                 }

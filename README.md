@@ -47,8 +47,9 @@ array('title'=>"标题2",'name'=>'名字1','price'=>'140'),
 //使用方法
 ```
 $excel=new \ank\Excel();
-//两个参数一个是上传路径另一个是上传的表单name
+//两个参数一个是上传后保存的路径另一个是上传的表单name,如果第一个路径文件存在就直接解析
 $excel->importExcel('e:/upload','excel');
 //参数是一个配置项如上面导出的配置一样
 $excel->downloadExcel($conf);
+//更多用法可以参考example.php中的使用方法
 ```
