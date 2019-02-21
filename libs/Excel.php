@@ -22,39 +22,45 @@ class Excel
         include __DIR__ . '/phpexcel/PHPExcel/Worksheet/Drawing.php';
         include __DIR__ . '/phpexcel/PHPExcel/Style/Fill.php';
     }
-    //钩子默认的调用方法
-    public function run()
-    {
-        $this->display('content');
-    }
 
     /**
      * 导入excel文件中的数据
      * @return [type] [description]
      */
-    public function importExcel()
+    public function importExcel($uploadpath = __DIR__, $formname = 'excel')
     {
-        $file         = '';
-        $filetempname = '';
-        if ($_FILES && $_FILES['excel']['name']) {
-            $file         = $_FILES['excel']['name'];
-            $filetempname = $_FILES['excel']['tmp_name'];
-        } else {
-            die('请选择文件后再上传');
+        $isuploaded = true;
+        if (is_file($uploadpath)) {
+            $isuploaded = false;
         }
-        //自己设置的上传文件存放路径
-        $filePath = RUNTIME_PATH;
-        $str      = "";
+        $result     = false;
+        $uploadfile = '';
+        if ($isuploaded) {
+            $file         = '';
+            $filetempname = '';
+            if ($_FILES && isset($_FILES[$formname]['name'])) {
+                $file         = $_FILES[$formname]['name'];
+                $filetempname = $_FILES[$formname]['tmp_name'];
+            } else {
+                die('请选择文件后再上传');
+            }
+            //自己设置的上传文件存放路径
+            $filePath = $uploadpath;
+            $str      = "";
 
-        //注意设置时区
-        $time = date("y-m-d-H-i-s"); //去当前上传的时间
-        //获取上传文件的扩展名
-        $extend = strrchr($file, '.');
-        //上传后的文件名
-        $name       = $time . $extend;
-        $uploadfile = $filePath . $name; //上传后的文件名地址
-        //move_uploaded_file() 函数将上传的文件移动到新位置。若成功，则返回 true，否则返回 false。
-        $result = move_uploaded_file($filetempname, $uploadfile); //假如上传到当前目录下
+            //注意设置时区
+            $time = date("y-m-d-H-i-s"); //去当前上传的时间
+            //获取上传文件的扩展名
+            $extend = strrchr($file, '.');
+            //上传后的文件名
+            $name       = $time . $extend;
+            $uploadfile = $filePath . '/' . $name; //上传后的文件名地址
+            //move_uploaded_file() 函数将上传的文件移动到新位置。若成功，则返回 true，否则返回 false。
+            $result = move_uploaded_file($filetempname, $uploadfile); //假如上传到当前目录下
+        } else {
+            $result     = true;
+            $uploadfile = $uploadpath;
+        }
         //echo $result;
         if ($result) //如果上传文件成功，就执行导入excel操作
         {
@@ -65,13 +71,13 @@ class Excel
             $extension = strtolower(pathinfo($uploadfile, PATHINFO_EXTENSION));
 
             if ($extension == 'xlsx') {
-                $objReader   = new PHPExcel_Reader_Excel2007();
+                $objReader   = new \PHPExcel_Reader_Excel2007();
                 $objPHPExcel = $objReader->load($uploadfile);
             } else if ($extension == 'xls') {
-                $objReader   = new PHPExcel_Reader_Excel5();
+                $objReader   = new \PHPExcel_Reader_Excel5();
                 $objPHPExcel = $objReader->load($uploadfile);
             } else if ($extension == 'csv') {
-                $PHPReader = new PHPExcel_Reader_CSV();
+                $PHPReader = new \PHPExcel_Reader_CSV();
                 //默认输入字符集
                 $PHPReader->setInputEncoding('GBK');
                 //默认的分隔符
@@ -99,23 +105,29 @@ class Excel
                     //实测在excel中，如果某单元格的值包含了\\导入的数据会为空
                     //getValue 取内容   getCalculatedValue 取工式结果
                     $str = $objPHPExcel->getActiveSheet()->getCell("$k$j")->getCalculatedValue(); //读取单元格
-                    //dump($str);
-                    if (empty($str) && $k == 'A') {
+                    $str = trim($str);
+                    //第一行做为字段
+                    if (empty($str) && $j == 1) {
                         break;
                     }
 
                     if ($j == 1) {
                         $fieldarr[$k] = $str;
                     } else {
+                        //遍历的列数据超过啦字段长度直接退出
+                        if (!isset($fieldarr[$k])) {
+                            break;
+                        }
                         $tem[$fieldarr[$k]] = $str;
                     }
                 }
-                if ($j !== 1 && !empty($tem)) {
+                //非第一行做为数据填充
+                if ($j !== 1 && $tem) {
                     $colarr[] = $tem;
                 }
 
             }
-            unlink($uploadfile); //删除上传的excel文件
+            $isuploaded && unlink($uploadfile); //删除上传的excel文件
             return $colarr;
         } else {
             die("导入失败！");
@@ -126,7 +138,7 @@ class Excel
      * @param  array  $config [description]
      * @return [type]         [description]
      */
-    public function exportExcel($config = [])
+    public function downloadExcel($config = [], $savepath = '')
     {
         $conf = [
             'data'     => [], //数据
@@ -223,11 +235,16 @@ class Excel
         }
         $objPHPExcel->getActiveSheet()->setTitle('User');
         $objPHPExcel->setActiveSheetIndex(0);
-        header('Content-Type: application/vnd.ms-excel');
-        header('Content-Disposition: attachment;filename="' . $name . '.xls"');
-        header('Cache-Control: max-age=0');
         $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
-        $objWriter->save('php://output');
-        exit;
+        if ($savepath) {
+            $objWriter->save($savepath);
+        } else {
+            header('Content-Type: application/vnd.ms-excel');
+            header('Content-Disposition: attachment;filename="' . $name . '.xls"');
+            header('Cache-Control: max-age=0');
+            $objWriter->save('php://output');
+            exit;
+        }
+
     }
 }
