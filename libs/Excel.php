@@ -42,7 +42,7 @@ class Excel
                 $file         = $_FILES[$formname]['name'];
                 $filetempname = $_FILES[$formname]['tmp_name'];
             } else {
-                die('请选择文件后再上传');
+                return [];
             }
             //自己设置的上传文件存放路径
             $filePath = $uploadpath;
@@ -134,7 +134,7 @@ class Excel
             $isuploaded && unlink($uploadfile); //删除上传的excel文件
             return $colarr;
         } else {
-            die("导入失败！");
+            return [];
         }
     }
     /**
