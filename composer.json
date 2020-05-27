@@ -1,25 +1,29 @@
 {
-  "name": "ank/phpexcel",
-  "license": "MIT",
-  "minimum-stability": "dev",
-  "authors": [
+    "name": "ank/phpexcel",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
     {
-      "name": "mokuyu",
-      "email": "735579768@qq.com"
+        "name": "mokuyu",
+        "email": "735579768@qq.com"
+    }],
+    "autoload":
+    {
+        "psr-4":
+        {
+            "ank\\": "src"
+        }
+    },
+    "extra":
+    {
+        "branch-alias":
+        {
+            "dev-master": "2.0.x-dev"
+        }
+    },
+    "require":
+    {
+        "php": "^7.1",
+        "phpoffice/phpspreadsheet": "1.12.0"
     }
-  ],
-  "autoload": {
-    "psr-4": {
-      "ank\\": "src"
-    }
-  },
-  "extra": {
-    "branch-alias": {
-      "dev-master": "1.0.x-dev"
-    }
-  },
-  "require": {
-    "php": "^7.1",
-    "phpoffice/phpspreadsheet": "1.12.0"
-  }
 }
