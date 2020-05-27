@@ -1,5 +1,8 @@
 <?php
+
 namespace ank;
+
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 /**
  *使用方法
@@ -14,14 +17,6 @@ namespace ank;
 // require_once path_a('/Plugins/Plugin.class.php');
 class Excel
 {
-    public function __construct()
-    {
-        include __DIR__ . '/phpexcel/PhpExcel.php';
-        include __DIR__ . '/phpexcel/PHPExcel/IOFactory.php';
-        include __DIR__ . '/phpexcel/PHPExcel/Reader/Excel5.php';
-        include __DIR__ . '/phpexcel/PHPExcel/Worksheet/Drawing.php';
-        include __DIR__ . '/phpexcel/PHPExcel/Style/Fill.php';
-    }
 
     /**
      * 导入excel文件中的数据
@@ -41,7 +36,8 @@ class Excel
             if ($_FILES && isset($_FILES[$formname]['name'])) {
                 $file         = $_FILES[$formname]['name'];
                 $filetempname = $_FILES[$formname]['tmp_name'];
-            } else {
+            }
+            else {
                 return [];
             }
             //自己设置的上传文件存放路径
@@ -54,10 +50,11 @@ class Excel
             $extend = strrchr($file, '.');
             //上传后的文件名
             $name       = $time . $extend;
-            $uploadfile = $filePath . '/' . $name; //上传后的文件名地址
+            $uploadfile = $filePath . '/' . $name;                    //上传后的文件名地址
             //move_uploaded_file() 函数将上传的文件移动到新位置。若成功，则返回 true，否则返回 false。
             $result = move_uploaded_file($filetempname, $uploadfile); //假如上传到当前目录下
-        } else {
+        }
+        else {
             $result     = true;
             $uploadfile = $uploadpath;
         }
@@ -73,10 +70,12 @@ class Excel
             if ($extension == 'xlsx') {
                 $objReader   = new \PHPExcel_Reader_Excel2007();
                 $objPHPExcel = $objReader->load($uploadfile);
-            } else if ($extension == 'xls') {
+            }
+            elseif ($extension == 'xls') {
                 $objReader   = new \PHPExcel_Reader_Excel5();
                 $objPHPExcel = $objReader->load($uploadfile);
-            } else if ($extension == 'csv') {
+            }
+            elseif ($extension == 'csv') {
                 $PHPReader = new \PHPExcel_Reader_CSV();
                 //默认输入字符集
                 $PHPReader->setInputEncoding('GBK');
@@ -87,17 +86,17 @@ class Excel
             }
 
             $sheet         = $objPHPExcel->getSheet(0);
-            $highestRow    = $sheet->getHighestRow(); //取得总行数
+            $highestRow    = $sheet->getHighestRow();    //取得总行数
             $highestColumn = $sheet->getHighestColumn(); //取得总列数
             //dump($highestRow);
             //dump($highestColumn);
-            $colarr   = array();
-            $fieldarr = array();
+            $colarr   = [];
+            $fieldarr = [];
             //循环读取excel文件,读取一条,插入一条
             for ($j = 1; $j <= $highestRow; $j++) //从第一行开始读取数据
             {
 
-                $tem = array();
+                $tem = [];
                 for ($k = 'A'; $k <= $highestColumn; $k++) //从A列读取数据
                 {
 
@@ -113,7 +112,8 @@ class Excel
 
                     if ($j == 1) {
                         $fieldarr[$k] = $str;
-                    } else {
+                    }
+                    else {
                         //遍历的列数据超过啦字段长度直接退出
                         if (!isset($fieldarr[$k])) {
                             break;
@@ -133,16 +133,78 @@ class Excel
             }
             $isuploaded && unlink($uploadfile); //删除上传的excel文件
             return $colarr;
-        } else {
+        }
+        else {
             return [];
         }
     }
+
+    public function downloadExcel($config = [], $savepath = null)
+    {
+        $conf = [
+            'data'     => [], //数据
+            'filename' => '', //文件名字
+            'field'    => '', //excel标题名字
+        ];
+        // dump($config);
+        $conf = array_merge($conf, $config);
+        $data = $conf['data'];
+
+
+        $field      = array_keys($conf['field']);
+        $fieldtitle = array_values($conf['field']);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        //表头
+        //设置单元格内容
+        foreach ($conf['field'] as $key => $value) {
+            // 单元格内容写入
+            $sheet->setCellValueByColumnAndRow($key + 1, 1, $value);
+        }
+        $row = 2;                                                      // 从第二行开始
+        foreach ($data as $item) {
+            $column = 1;
+            foreach ($conf['field'] as $key => $value) {
+                // 单元格内容写入
+                $sheet->setCellValueByColumnAndRow($column, $row, $item[$key] ?? '');
+                $column++;
+            }
+            $row++;
+        }
+        if ($savepath !== null) {
+            // Save
+            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $name   = $conf['filename'] . '-' . date('Y-m-d H-i-s');
+            $writer->save($savepath . '/' . $name . '.xlsx');
+
+        }
+        else {
+            // Redirect output to a client’s web browser (Xlsx)
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="01simple.xlsx"');
+            header('Cache-Control: max-age=0');
+            // If you're serving to IE 9, then the following may be needed
+            header('Cache-Control: max-age=1');
+
+            // If you're serving to IE over SSL, then the following may be needed
+            header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');              // Date in the past
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT'); // always modified
+            header('Cache-Control: cache, must-revalidate');               // HTTP/1.1
+            header('Pragma: public');                                      // HTTP/1.0
+
+            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save('php://output');
+        }
+        exit;
+    }
+
     /**
      * 导出excel文件
-     * @param  array  $config [description]
+     * @param array $config [description]
      * @return [type]         [description]
      */
-    public function downloadExcel($config = [], $savepath = '')
+    public function downloadExcel2($config = [], $savepath = '')
     {
         $conf = [
             'data'     => [], //数据
@@ -162,12 +224,12 @@ class Excel
         $objPHPExcel = new \PHPExcel();
         //以下是一些设置 ，什么作者  标题啊之类的
         $objPHPExcel->getProperties()->setCreator("ainiku")
-            ->setLastModifiedBy("ainiku")
-            ->setTitle("feilv export")
-            ->setSubject("feilv export")
-            ->setDescription("bakdata")
-            ->setKeywords("excel")
-            ->setCategory("result file");
+                    ->setLastModifiedBy("ainiku")
+                    ->setTitle("feilv export")
+                    ->setSubject("feilv export")
+                    ->setDescription("bakdata")
+                    ->setKeywords("excel")
+                    ->setCategory("result file");
         //设置表头
         $obj = $objPHPExcel->setActiveSheetIndex(0);
 
@@ -179,7 +241,7 @@ class Excel
             $obj->setCellValue($pre_zm . $zm . '1', ' ' . $v);
             if ($zm == 'Z') {
                 $pre_zm .= 'A';
-                $j = 65;
+                $j      = 65;
             }
         }
         //Set border colors 设置边框颜色
@@ -206,19 +268,20 @@ class Excel
                 if (substr($temstr, 0, 1) == "'") {
                     $temstr = str_replace("'", '', $temstr);
                     $obj->setCellValue($j . $num, ' ' . $v[$temstr]);
-                } else if (substr($temstr, 0, 5) == "#pic#") {
+                }
+                elseif (substr($temstr, 0, 5) == "#pic#") {
                     //插入图片
                     $temstr = str_replace("#pic#", '', $temstr);
                     $img    = new \PHPExcel_Worksheet_Drawing();
-                    $img->setPath($v[$temstr]); //写入图片路径
-                    $img->setHeight(100); //写入图片高度
-                    $img->setWidth(100); //写入图片宽度
-                    $img->setOffsetX(1); //写入图片在指定格中的X坐标值
-                    $img->setOffsetY(1); //写入图片在指定格中的Y坐标值
-                    $img->setRotation(1); //设置旋转角度
+                    $img->setPath($v[$temstr]);          //写入图片路径
+                    $img->setHeight(100);                //写入图片高度
+                    $img->setWidth(100);                 //写入图片宽度
+                    $img->setOffsetX(1);                 //写入图片在指定格中的X坐标值
+                    $img->setOffsetY(1);                 //写入图片在指定格中的Y坐标值
+                    $img->setRotation(1);                //设置旋转角度
                     $img->getShadow()->setVisible(true); //
                     $img->getShadow()->setDirection(50); //
-                    $img->setCoordinates($j . $num); //设置图片所在表格位置
+                    $img->setCoordinates($j . $num);     //设置图片所在表格位置
                     //$objPHPExcel->getColumnDimension("$letter[$i]")->setWidth(20);
                     $obj->getDefaultRowDimension()->setRowHeight(100);
                     $img->setWorksheet($obj); //把图片写到当前的表格中
@@ -226,12 +289,14 @@ class Excel
                     //$objActSheet->getCell('E26')->getHyperlink()->setUrl( 'http://www.phpexcel.net');    //超链接url地址
                     //$objActSheet->getCell('E26')->getHyperlink()->setTooltip( 'Navigate to website');  //鼠标移上去连接提示信息
                     //$obj->setCellValue($j.$num, $img);
-                } else if (substr($temstr, 0, 6) == "#link#") {
+                }
+                elseif (substr($temstr, 0, 6) == "#link#") {
                     $temstr = str_replace("#link#", '', $temstr);
                     $obj->setCellValue($j . $num, $v[$temstr]);
-                    $obj->getCell($j . $num)->getHyperlink()->setUrl($v[$temstr]); //超链接url地址
+                    $obj->getCell($j . $num)->getHyperlink()->setUrl($v[$temstr]);     //超链接url地址
                     $obj->getCell($j . $num)->getHyperlink()->setTooltip($v[$temstr]); //鼠标移上去连接提
-                } else {
+                }
+                else {
                     $obj->setCellValue($j . $num, ' ' . $v[$temstr]);
                 }
                 $j++;
@@ -242,7 +307,8 @@ class Excel
         $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
         if ($savepath) {
             $objWriter->save($savepath);
-        } else {
+        }
+        else {
             header('Content-Type: application/vnd.ms-excel');
             header('Content-Disposition: attachment;filename="' . $name . '.xls"');
             header('Cache-Control: max-age=0');
