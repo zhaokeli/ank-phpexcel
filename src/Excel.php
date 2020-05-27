@@ -150,7 +150,7 @@ class Excel
         $conf = array_merge($conf, $config);
         $data = $conf['data'];
 
-
+        $fileName   = $conf['filename'] . '-' . date('Y-m-d H-i-s');
         $field      = array_keys($conf['field']);
         $fieldtitle = array_values($conf['field']);
 
@@ -158,31 +158,37 @@ class Excel
         $sheet       = $spreadsheet->getActiveSheet();
         //表头
         //设置单元格内容
+        $titCol = 'A';
         foreach ($conf['field'] as $key => $value) {
             // 单元格内容写入
-            $sheet->setCellValueByColumnAndRow($key + 1, 1, $value);
+            $sheet->setCellValue($titCol . '1', $value);
+            $titCol++;
         }
         $row = 2;                                                      // 从第二行开始
         foreach ($data as $item) {
-            $column = 1;
+            $dataCol = 'A';
             foreach ($conf['field'] as $key => $value) {
                 // 单元格内容写入
-                $sheet->setCellValueByColumnAndRow($column, $row, $item[$key] ?? '');
-                $column++;
+                $value = ($item[$key] ?? '');
+                if (is_numeric($value)) {
+                    $sheet->getStyle($dataCol . $row)->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_NUMBER);
+                }
+                $sheet->setCellValue($dataCol . $row, $value);
+                $dataCol++;
             }
             $row++;
         }
         if ($savepath !== null) {
             // Save
             $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-            $name   = $conf['filename'] . '-' . date('Y-m-d H-i-s');
-            $writer->save($savepath . '/' . $name . '.xlsx');
+
+            $writer->save($savepath . '/' . $fileName . '.xlsx');
 
         }
         else {
             // Redirect output to a client’s web browser (Xlsx)
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="01simple.xlsx"');
+            header('Content-Disposition: attachment;filename="' . $fileName . '.xlsx"');
             header('Cache-Control: max-age=0');
             // If you're serving to IE 9, then the following may be needed
             header('Cache-Control: max-age=1');
