@@ -23,7 +23,6 @@
     },
     "require":
     {
-        "php": "^7.1",
         "phpoffice/phpspreadsheet": "1.12.0"
     }
 }
