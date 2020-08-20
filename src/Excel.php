@@ -20,74 +20,84 @@ class Excel
 
     /**
      * 导入excel文件中的数据
-     * @return [type] [description]
+     * @param null   $excelFilePath
+     * @param string $formname
+     * @return array
      */
-    public function importExcel($uploadpath = __DIR__, $formname = 'excel')
+    public function importExcel($excelFilePath = null, $formname = 'excel')
     {
-        $isuploaded = true;
-        if (is_file($uploadpath)) {
-            $isuploaded = false;
-        }
-        $result     = false;
-        $uploadfile = '';
-        if ($isuploaded) {
-            $file         = '';
-            $filetempname = '';
-            if ($_FILES && isset($_FILES[$formname]['name'])) {
-                $file         = $_FILES[$formname]['name'];
-                $filetempname = $_FILES[$formname]['tmp_name'];
+        try {
+            $uploadfile = $excelFilePath;
+            if (!$uploadfile) {
+                if ($_FILES && isset($_FILES[$formname]['name'])) {
+                    $file       = $_FILES[$formname]['name'];
+                    $uploadfile = $_FILES[$formname]['tmp_name'];
+                }
             }
-            else {
+            //$isuploaded = true;
+            //if (is_file($uploadpath)) {
+            //    $isuploaded = false;
+            //}
+            //$result     = false;
+            //$uploadfile = '';
+            //if ($isuploaded) {
+            //$file         = '';
+            //$filetempname = '';
+
+            if (!is_file($uploadfile)) {
                 return [];
             }
             //自己设置的上传文件存放路径
-            $filePath = $uploadpath;
-            $str      = "";
+            //$filePath = $uploadpath;
+            //$str      = "";
 
             //注意设置时区
-            $time = date("y-m-d-H-i-s"); //去当前上传的时间
+            //$time = date("y-m-d-H-i-s"); //去当前上传的时间
             //获取上传文件的扩展名
-            $extend = strrchr($file, '.');
+            //$extend = strrchr($file, '.');
             //上传后的文件名
-            $name       = $time . $extend;
-            $uploadfile = $filePath . '/' . $name;                    //上传后的文件名地址
+            //$name       = $time . $extend;
+            //$uploadfile = $filePath . '/' . $name;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            //上传后的文件名地址
             //move_uploaded_file() 函数将上传的文件移动到新位置。若成功，则返回 true，否则返回 false。
-            $result = move_uploaded_file($filetempname, $uploadfile); //假如上传到当前目录下
-        }
-        else {
-            $result     = true;
-            $uploadfile = $uploadpath;
-        }
-        //echo $result;
-        if ($result) //如果上传文件成功，就执行导入excel操作
-        {
+            //$result     = move_uploaded_file($filetempname, $uploadfile);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         //假如上传到当前目录下
+            //$uploadfile = $filetempname;
+            //$result     = true;
+            //}
+            //else {
+            //    $result     = true;
+            //    $uploadfile = $uploadpath;
+            //}
+            //echo $result;
+            //if ($result) //如果上传文件成功，就执行导入excel操作
+            //{
             // include "conn.php";
             // $objReader   = \PHPExcel_IOFactory::createReader('Excel5'); //use excel2007 for 2007 format
             // $objPHPExcel = $objReader->load($uploadfile);
 
-            $extension = strtolower(pathinfo($uploadfile, PATHINFO_EXTENSION));
-
-            if ($extension == 'xlsx') {
-                $objReader   = new \PHPExcel_Reader_Excel2007();
-                $objPHPExcel = $objReader->load($uploadfile);
-            }
-            elseif ($extension == 'xls') {
-                $objReader   = new \PHPExcel_Reader_Excel5();
-                $objPHPExcel = $objReader->load($uploadfile);
-            }
-            elseif ($extension == 'csv') {
-                $PHPReader = new \PHPExcel_Reader_CSV();
-                //默认输入字符集
-                $PHPReader->setInputEncoding('GBK');
-                //默认的分隔符
-                $PHPReader->setDelimiter(',');
-                //载入文件
-                $objPHPExcel = $PHPReader->load($uploadfile);
-            }
+            $extension   = strtolower(pathinfo($uploadfile, PATHINFO_EXTENSION));
+            $objPHPExcel = \PhpOffice\PhpSpreadsheet\IOFactory::load($uploadfile);
+            //if ($extension == 'xlsx') {
+            //    //$objReader   = new \PHPExcel_Reader_Excel2007();
+            //    //$objPHPExcel = $objReader->load($uploadfile);
+            //    $objPHPExcel = \PhpOffice\PhpSpreadsheet\IOFactory::load("05featuredemo.xlsx");
+            //}
+            //elseif ($extension == 'xls') {
+            //    $objReader   = new \PHPExcel_Reader_Excel5();
+            //    $objPHPExcel = $objReader->load($uploadfile);
+            //}
+            //elseif ($extension == 'csv') {
+            //    $PHPReader = new \PHPExcel_Reader_CSV();
+            //    //默认输入字符集
+            //    $PHPReader->setInputEncoding('GBK');
+            //    //默认的分隔符
+            //    $PHPReader->setDelimiter(',');
+            //    //载入文件
+            //    $objPHPExcel = $PHPReader->load($uploadfile);
+            //}
 
             $sheet         = $objPHPExcel->getSheet(0);
-            $highestRow    = $sheet->getHighestRow();    //取得总行数
-            $highestColumn = $sheet->getHighestColumn(); //取得总列数
+            $highestRow    = $sheet->getHighestRow();       //取得总行数
+            $highestColumn = $sheet->getHighestColumn();    //取得总列数
             //dump($highestRow);
             //dump($highestColumn);
             $colarr   = [];
@@ -131,10 +141,13 @@ class Excel
                 }
 
             }
-            $isuploaded && unlink($uploadfile); //删除上传的excel文件
+            //$isuploaded && unlink($uploadfile); //删除上传的excel文件
             return $colarr;
-        }
-        else {
+            //}
+            //else {
+            //    return [];
+            //}
+        } catch (\Exception $e) {
             return [];
         }
     }

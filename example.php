@@ -1,7 +1,7 @@
 <?php
 include __dir__ . '/libs/Excel.php';
 $excel = new \ank\Excel();
-//两个参数一个是上传后保存的路径另一个是上传的表单name,如果第一个路径文件存在就直接解析
+//参数一是excel文件路径如果存在则直接解析,参数二是上传的表单name参数一为null的情况下自动从文件域为excel的键读取文件内容
 $arr = $excel->importExcel(__dir__ . '/test.xls', 'excel');
 var_dump($arr);
 die();
